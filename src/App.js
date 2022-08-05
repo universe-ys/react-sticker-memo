@@ -1,11 +1,30 @@
+import { observer } from "mobx-react-lite";
 import Memo from "./Memo/Memo";
+import AddIcon from "@mui/icons-material/Add";
+import { useCallback } from "react";
 
-function App() {
+function App({store}) {
+
+  const AddMemo = useCallback(() => store.addMemo(), [store]);
+
+  const Edit = useCallback((id, content) => store.editMemo(id, content), [store]);
+
+  const SetWidthHeight = useCallback((id, width, height) => store.setWidthHeight(id, width, height), [store]);
+
+  const SetPosition = useCallback((id, x, y) => store.setPosition(id, x, y), [store]);
+
+  const Delete = useCallback((id) => store.removeMemo(id), [store]);
+
   return (
-    <div>
-      <Memo />
-    </div>
+    <>{
+      store.memos.map((memo) => <Memo key={memo.id} item={memo} Edit={Edit} Delete={Delete} SetWidthHeight={SetWidthHeight} SetPosition={SetPosition}/>)
+    }
+    <AddIcon 
+      sx={{ float: "right", backgroundColor: "#e4e4e4", borderRadius: "5px", cursor: "pointer", fontSize: "30px", border: "1px solid #000" }}
+      onClick={AddMemo} 
+    />
+    </>
   );
 }
 
-export default App;
+export default observer(App);

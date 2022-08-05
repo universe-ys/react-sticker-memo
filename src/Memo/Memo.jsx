@@ -1,18 +1,46 @@
-import React, { useRef } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
 import CloseIcon from "@mui/icons-material/Close";
 import "./Memo.scss";
 import Draggable from "@seulyiyoo/draggable";
+import { debounce } from "underscore";
+import { observer } from "mobx-react";
 
 function Memo({ item, Delete, Edit, SetPosition, SetWidthHeight }) {
 
   const handleRef = useRef(null);
+  const memoContainer = useRef(null);
+  const onChangeMemo = useMemo(() => debounce(e => Edit(item.id, e.target.value), 500), [item.id, Edit])
+  const onChangeSize = useMemo(() => debounce((entry) => {
+    const {width, height} = entry[0].contentRect;
+    SetWidthHeight(item.id, width, height);
+  }, 100), [item.id, SetWidthHeight])
+
+  useLayoutEffect(() => {
+    let RO = new ResizeObserver(onChangeSize);
+    RO.observe(memoContainer.current);
+    return () => {
+      RO.disconnect()
+      RO = null;
+    }
+  });
+
+  const onChangePosition = useCallback((x, y) => SetPosition(item.id, x, y), [item.id, SetPosition]);
+  const onClickDelete = useCallback(() => Delete(item.id), [item.id, Delete]);
+
+  useEffect(() => {
+    return () => {
+      onChangeMemo.cancel()
+      onChangeSize.cancel()
+    }
+  }, [onChangeMemo, onChangeSize]);
 
   return (
-    <Draggable handleRef={handleRef} x={0} y={0} onMove={(x, y) => console.log(x, y)}>
+    <Draggable handleRef={handleRef} x={item.x} y={item.y} onMove={onChangePosition}>
       <div
         className="memo-container"
-        style={{ widht: `${250}px`, height: `${300}px` }}
+        style={{ widht: `${item.width}px`, height: `${item.height}px` }}
+        ref={memoContainer}
       >
         <div className="memu">
           <DragHandleIcon 
@@ -21,13 +49,15 @@ function Memo({ item, Delete, Edit, SetPosition, SetWidthHeight }) {
           />
           <CloseIcon
             sx={{ cursor: "pointer", fontSize: "25px", float: "right" }}
+            onClick={onClickDelete}
           />
         </div>
         <textarea 
           className="memo-text-area"
-          defaultValue={"Enter memo here"}
+          defaultValue={item.content}
           name="txt" 
           placeholder="Enter memo here"
+          onChange={onChangeMemo}
         >
         </textarea>
       </div>
@@ -35,4 +65,4 @@ function Memo({ item, Delete, Edit, SetPosition, SetWidthHeight }) {
   );
 }
 
-export default Memo;
+export default observer(Memo);
